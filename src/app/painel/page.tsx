@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth, Usuario } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Save,
   Loader2,
@@ -73,8 +73,20 @@ const PAGE_SIZE = 10;
 export default function PainelPage() {
   const { user, usuarios, setUser, refreshUsuarios, loading: authLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
-  const [activeTab, setActiveTab] = useState<Tab>("usuarios");
+  // Redirect /painel → /painel/usuarios
+  useEffect(() => {
+    if (pathname === "/painel") {
+      router.replace("/painel/usuarios");
+    }
+  }, [pathname, router]);
+
+  const tabFromPath = (pathname.split("/")[2] as Tab) || "usuarios";
+  const validTabs: Tab[] = ["usuarios", "perfil", "pagamentos", "historico"];
+  const activeTab: Tab = validTabs.includes(tabFromPath) ? tabFromPath : "usuarios";
+
+  const setActiveTab = (tab: Tab) => router.push(`/painel/${tab}`);
   const [form, setForm] = useState({ nome: "", email: "", whatsapp: "" });
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
