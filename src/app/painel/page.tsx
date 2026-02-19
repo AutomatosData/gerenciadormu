@@ -25,6 +25,10 @@ import {
   CheckCircle,
   XCircle,
   Wifi,
+  QrCode,
+  X,
+  Copy,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -34,6 +38,20 @@ interface Pagamento {
   dataPagamento: string;
   valor: string;
   metodo: string;
+}
+
+interface PagamentoPendente {
+  id: string;
+  idUsuario: string;
+  usuario: string;
+  status: string;
+  valor: number;
+  metodo: string;
+  dataCriacao: string;
+  planoNome: string;
+  pixQrCode: string | null;
+  pixQrCodeBase64: string | null;
+  pixTicketUrl: string | null;
 }
 
 interface HistoricoLogin {
@@ -70,6 +88,10 @@ export default function PainelPage() {
 
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [loadingPag, setLoadingPag] = useState(false);
+  const [pendentes, setPendentes] = useState<PagamentoPendente[]>([]);
+  const [loadingPendentes, setLoadingPendentes] = useState(false);
+  const [pixModal, setPixModal] = useState<PagamentoPendente | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const [historico, setHistorico] = useState<HistoricoLogin[]>([]);
   const [loadingHist, setLoadingHist] = useState(false);
@@ -108,6 +130,7 @@ export default function PainelPage() {
   useEffect(() => {
     if (user && activeTab === "pagamentos") {
       fetchAllPagamentos();
+      fetchPendentes();
     }
     if (user && activeTab === "historico") {
       fetchAllHistorico();
@@ -133,6 +156,25 @@ export default function PainelPage() {
       console.error("Erro ao carregar pagamentos");
     }
     setLoadingPag(false);
+  };
+
+  const fetchPendentes = async () => {
+    if (!user) return;
+    setLoadingPendentes(true);
+    try {
+      const res = await fetch(`/api/pagamento/pendentes?usuarioPai=${encodeURIComponent(user.usuarioPai)}`);
+      const data = await res.json();
+      if (data.pendentes) setPendentes(data.pendentes);
+    } catch {
+      console.error("Erro ao carregar pagamentos pendentes");
+    }
+    setLoadingPendentes(false);
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const fetchAllHistorico = async () => {
@@ -595,8 +637,114 @@ export default function PainelPage() {
         </div>
       )}
 
+      {/* ==================== MODAL QR CODE PIX ==================== */}
+      {pixModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 w-full max-w-sm relative">
+            <button
+              onClick={() => setPixModal(null)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="text-center mb-5">
+              <QrCode className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+              <h3 className="text-lg font-semibold">Pagamento PIX Pendente</h3>
+              <p className="text-sm text-gray-400 mt-1">
+                Usuário: <strong className="text-white">{pixModal.usuario}</strong> — Plano <strong className="text-white">{pixModal.planoNome}</strong>
+              </p>
+              <p className="text-2xl font-bold text-green-400 mt-2">
+                R$ {pixModal.valor.toFixed(2).replace(".", ",")}
+              </p>
+            </div>
+            {pixModal.pixQrCodeBase64 && (
+              <div className="flex justify-center mb-4">
+                <img
+                  src={`data:image/png;base64,${pixModal.pixQrCodeBase64}`}
+                  alt="QR Code PIX"
+                  className="w-48 h-48 rounded-xl border border-gray-700"
+                />
+              </div>
+            )}
+            {pixModal.pixQrCode && (
+              <div className="mb-4">
+                <p className="text-xs text-gray-500 mb-1 text-center">Copia e Cola</p>
+                <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2">
+                  <span className="text-xs text-gray-300 font-mono truncate flex-1">{pixModal.pixQrCode}</span>
+                  <button
+                    onClick={() => handleCopy(pixModal.pixQrCode!)}
+                    className="shrink-0 text-purple-400 hover:text-purple-300 transition-colors"
+                    title="Copiar código PIX"
+                  >
+                    {copied ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+            {pixModal.pixTicketUrl && (
+              <a
+                href={pixModal.pixTicketUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors"
+              >
+                Abrir página de pagamento
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ==================== PAGAMENTOS TAB ==================== */}
       {activeTab === "pagamentos" && (
+        <div className="space-y-6">
+
+          {/* Pagamentos Pendentes */}
+          {(loadingPendentes || pendentes.length > 0) && (
+            <div className="bg-gray-900 border border-amber-500/30 rounded-2xl p-6 sm:p-8">
+              <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                <AlertCircle className="w-5 h-5 text-amber-400" />
+                Pagamentos Pendentes
+              </h2>
+              {loadingPendentes ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendentes.map((p) => (
+                    <div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
+                          {p.metodo === "pix" ? <QrCode className="w-4 h-4 text-amber-400" /> : <CreditCard className="w-4 h-4 text-amber-400" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">{p.usuario} — Plano {p.planoNome}</p>
+                          <p className="text-xs text-gray-500">
+                            {p.metodo === "pix" ? "PIX" : p.metodo} · R$ {p.valor.toFixed(2).replace(".", ",")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-md font-medium">
+                          Pendente
+                        </span>
+                        {p.metodo === "pix" && p.pixQrCode && (
+                          <button
+                            onClick={() => setPixModal(p)}
+                            className="flex items-center gap-1.5 text-xs bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                          >
+                            <QrCode className="w-3.5 h-3.5" /> Ver QR Code
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
             <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -692,6 +840,7 @@ export default function PainelPage() {
               )}
             </>
           )}
+        </div>
         </div>
       )}
 
