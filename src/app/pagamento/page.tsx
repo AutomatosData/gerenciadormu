@@ -10,14 +10,14 @@ import {
   Zap,
   Star,
   Sparkles,
-  ExternalLink,
   Gamepad2,
   ChevronDown,
   CreditCard,
   QrCode,
-  X,
   Copy,
   CheckCircle,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 
 interface Plano {
@@ -64,7 +64,20 @@ function getEconomia(plano: Plano): string | null {
   return `${economia}% de economia`;
 }
 
-type MetodoPagamento = "checkout" | "cartao";
+type MetodoPagamento = "pix" | "boleto" | "cartao";
+
+interface PixResult {
+  id: string | number;
+  qrCode: string | null;
+  qrCodeBase64: string | null;
+  ticketUrl: string | null;
+}
+
+interface BoletoResult {
+  id: string | number;
+  boletoUrl: string | null;
+  barcode: string | null;
+}
 
 function PagamentoContent() {
   const { user, usuarios, loading: authLoading } = useAuth();
@@ -73,9 +86,13 @@ function PagamentoContent() {
 
   const [selectedUsuarioId, setSelectedUsuarioId] = useState<string>("");
   const [selectedPlano, setSelectedPlano] = useState<Plano | null>(null);
-  const [metodo, setMetodo] = useState<MetodoPagamento>("checkout");
+  const [metodo, setMetodo] = useState<MetodoPagamento>("pix");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [cpf, setCpf] = useState("");
+  const [pixResult, setPixResult] = useState<PixResult | null>(null);
+  const [boletoResult, setBoletoResult] = useState<BoletoResult | null>(null);
   const brickControllerRef = useRef<{ unmount: () => void } | null>(null);
 
   const childUsuarios = usuarios.filter((u) => u.usuario);
@@ -94,7 +111,11 @@ function PagamentoContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, usuarios]);
 
-  // Load MP SDK script once
+  useEffect(() => {
+    setPixResult(null); setBoletoResult(null); setError("");
+  }, [selectedPlano, metodo, selectedUsuarioId]);
+
+  // Load MP SDK once
   useEffect(() => {
     if (document.getElementById("mp-sdk")) return;
     const script = document.createElement("script");
@@ -104,78 +125,52 @@ function PagamentoContent() {
     document.head.appendChild(script);
   }, []);
 
-  // Mount CardPayment Brick when metodo === "cartao" and plano + usuario selected
+  // Mount CardPayment Brick
   useEffect(() => {
     if (metodo !== "cartao" || !selectedPlano || !selectedUsuarioId) {
       brickControllerRef.current?.unmount();
       brickControllerRef.current = null;
       return;
     }
-
     const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
     if (!publicKey) return;
-
     const mountBrick = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mp = new (window as any).MercadoPago(publicKey, { locale: "pt-BR" });
       const bricks = mp.bricks();
       brickControllerRef.current?.unmount();
       brickControllerRef.current = null;
-
       const payerEmail = childUsuarios.find((u) => u.id === selectedUsuarioId)?.email || "";
-
       bricks.create("cardPayment", "cardPaymentBrick", {
         initialization: { amount: selectedPlano.preco, payer: { email: payerEmail } },
         customization: {
-          visual: {
-            style: {
-              theme: "dark",
-              customVariables: {
-                baseColor: "#7c3aed",
-                buttonBackground: "#7c3aed",
-                buttonTextColor: "#ffffff",
-              },
-            },
-          },
+          visual: { style: { theme: "dark", customVariables: { baseColor: "#7c3aed", buttonBackground: "#7c3aed", buttonTextColor: "#ffffff" } } },
           paymentMethods: { maxInstallments: 12 },
         },
         callbacks: {
           onReady: () => {},
           onSubmit: async (cardFormData: Record<string, unknown>) => {
-            setLoading(true);
-            setError("");
+            setLoading(true); setError("");
             try {
               const res = await fetch("/api/pagamento/cartao", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
+                method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...cardFormData, planoId: selectedPlano.id, userId: selectedUsuarioId }),
               });
               const data = await res.json();
-              if (!res.ok) {
-                setError(data.error || "Erro ao processar pagamento");
-              } else if (data.status === "approved") {
-                router.push("/pagamento/resultado?status=success");
-              } else if (data.status === "in_process" || data.status === "pending") {
-                router.push("/pagamento/resultado?status=pending");
-              } else {
-                setError(`Pagamento recusado: ${data.statusDetail || data.status}`);
-              }
-            } catch {
-              setError("Erro de conexão");
-            }
+              if (!res.ok) setError(data.error || "Erro ao processar pagamento");
+              else if (data.status === "approved") router.push("/pagamento/resultado?status=success");
+              else if (data.status === "in_process" || data.status === "pending") router.push("/pagamento/resultado?status=pending");
+              else setError(`Pagamento recusado: ${data.statusDetail || data.status}`);
+            } catch { setError("Erro de conexão"); }
             setLoading(false);
           },
           onError: (err: unknown) => { console.error("Brick error:", err); },
         },
-      }).then((controller: { unmount: () => void }) => {
-        brickControllerRef.current = controller;
-      });
+      }).then((c: { unmount: () => void }) => { brickControllerRef.current = c; });
     };
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((window as any).MercadoPago) {
-      mountBrick();
-    } else {
+    if ((window as any).MercadoPago) { mountBrick(); }
+    else {
       const script = document.getElementById("mp-sdk");
       script?.addEventListener("load", mountBrick);
       return () => script?.removeEventListener("load", mountBrick);
@@ -185,28 +180,45 @@ function PagamentoContent() {
 
   const selectedUsuario = childUsuarios.find((u) => u.id === selectedUsuarioId);
 
-  const handleCheckout = async () => {
+  const handlePix = async () => {
     if (!selectedPlano || !selectedUsuarioId) return;
-    setLoading(true);
-    setError("");
+    setLoading(true); setError(""); setPixResult(null);
     try {
-      const res = await fetch("/api/pagamento/criar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch("/api/pagamento/pix", {
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planoId: selectedPlano.id, userId: selectedUsuarioId }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Erro ao criar pagamento");
-      } else if (data.initPoint) {
-        window.location.href = data.initPoint;
-      } else {
-        setError("URL de pagamento não disponível");
-      }
-    } catch {
-      setError("Erro de conexão");
-    }
+      if (!res.ok) setError(data.error || "Erro ao gerar PIX");
+      else setPixResult(data);
+    } catch { setError("Erro de conexão"); }
     setLoading(false);
+  };
+
+  const handleBoleto = async () => {
+    if (!selectedPlano || !selectedUsuarioId || !cpf) return;
+    setLoading(true); setError(""); setBoletoResult(null);
+    try {
+      const res = await fetch("/api/pagamento/boleto", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planoId: selectedPlano.id, userId: selectedUsuarioId, cpf }),
+      });
+      const data = await res.json();
+      if (!res.ok) setError(data.error || "Erro ao gerar boleto");
+      else setBoletoResult(data);
+    } catch { setError("Erro de conexão"); }
+    setLoading(false);
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const formatCpf = (v: string) => {
+    const d = v.replace(/\D/g, "").slice(0, 11);
+    return d.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
   };
 
   if (authLoading || !user) {
@@ -327,7 +339,7 @@ function PagamentoContent() {
         })}
       </div>
 
-      {/* Método de pagamento + ação — só aparece quando plano e usuário selecionados */}
+      {/* Método de pagamento — só aparece quando plano e usuário selecionados */}
       {selectedPlano && selectedUsuarioId && (
         <div className="max-w-2xl mx-auto">
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">
@@ -339,51 +351,121 @@ function PagamentoContent() {
               </span>
             </h2>
 
-            {/* Tabs de método */}
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={() => setMetodo("checkout")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-medium transition-all ${
-                  metodo === "checkout"
-                    ? "bg-purple-600 border-purple-600 text-white"
-                    : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
-                }`}
-              >
-                <QrCode className="w-4 h-4" />
-                PIX / Boleto / Checkout
-              </button>
-              <button
-                onClick={() => setMetodo("cartao")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-medium transition-all ${
-                  metodo === "cartao"
-                    ? "bg-purple-600 border-purple-600 text-white"
-                    : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
-                }`}
-              >
-                <CreditCard className="w-4 h-4" />
-                Cartão de Crédito
-              </button>
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6">
+              {(["pix", "boleto", "cartao"] as MetodoPagamento[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMetodo(m)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                    metodo === m
+                      ? "bg-purple-600 border-purple-600 text-white"
+                      : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                  }`}
+                >
+                  {m === "pix" && <QrCode className="w-4 h-4" />}
+                  {m === "boleto" && <FileText className="w-4 h-4" />}
+                  {m === "cartao" && <CreditCard className="w-4 h-4" />}
+                  {m === "pix" ? "PIX" : m === "boleto" ? "Boleto" : "Cartão"}
+                </button>
+              ))}
             </div>
 
-            {metodo === "checkout" && (
+            {/* PIX */}
+            {metodo === "pix" && !pixResult && (
               <div className="text-center">
                 <p className="text-gray-400 text-sm mb-5">
-                  Você será redirecionado para o Mercado Pago onde poderá pagar via <strong className="text-white">PIX</strong>, <strong className="text-white">Boleto</strong> ou <strong className="text-white">Cartão</strong>.
+                  Gere um QR Code PIX e pague diretamente pelo seu banco ou app de pagamento.
                 </p>
                 <button
-                  onClick={handleCheckout}
+                  onClick={handlePix}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold bg-gradient-to-r from-purple-600 to-purple-700 hover:opacity-90 text-white transition-all disabled:opacity-50 disabled:cursor-wait"
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold bg-gradient-to-r from-green-600 to-green-700 hover:opacity-90 text-white transition-all disabled:opacity-50 disabled:cursor-wait"
                 >
-                  {loading ? (
-                    <><Loader2 className="w-5 h-5 animate-spin" /> Redirecionando...</>
-                  ) : (
-                    <><ExternalLink className="w-4 h-4" /> Ir para o Mercado Pago</>
-                  )}
+                  {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Gerando PIX...</> : <><QrCode className="w-4 h-4" /> Gerar QR Code PIX</>}
                 </button>
               </div>
             )}
 
+            {metodo === "pix" && pixResult && (
+              <div className="text-center">
+                <p className="text-green-400 text-sm font-medium mb-4 flex items-center justify-center gap-1.5">
+                  <CheckCircle className="w-4 h-4" /> PIX gerado! Escaneie o QR Code ou copie o código.
+                </p>
+                {pixResult.qrCodeBase64 && (
+                  <div className="flex justify-center mb-4">
+                    <img src={`data:image/png;base64,${pixResult.qrCodeBase64}`} alt="QR Code PIX" className="w-52 h-52 rounded-xl border border-gray-700" />
+                  </div>
+                )}
+                {pixResult.qrCode && (
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 mb-1">Copia e Cola</p>
+                    <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-left">
+                      <span className="text-xs text-gray-300 font-mono truncate flex-1">{pixResult.qrCode}</span>
+                      <button onClick={() => handleCopy(pixResult.qrCode!)} className="shrink-0 text-purple-400 hover:text-purple-300 transition-colors" title="Copiar">
+                        {copied ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {pixResult.ticketUrl && (
+                  <a href={pixResult.ticketUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-purple-400 hover:text-purple-300 transition-colors">
+                    <ExternalLink className="w-3.5 h-3.5" /> Abrir página do PIX
+                  </a>
+                )}
+                <p className="text-xs text-gray-500 mt-4">O plano será ativado automaticamente após a confirmação do pagamento.</p>
+              </div>
+            )}
+
+            {/* Boleto */}
+            {metodo === "boleto" && !boletoResult && (
+              <div>
+                <p className="text-gray-400 text-sm mb-4">Informe seu CPF para gerar o boleto bancário.</p>
+                <input
+                  type="text"
+                  value={cpf}
+                  onChange={(e) => setCpf(formatCpf(e.target.value))}
+                  placeholder="000.000.000-00"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                />
+                <button
+                  onClick={handleBoleto}
+                  disabled={loading || cpf.replace(/\D/g, "").length < 11}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:opacity-90 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Gerando boleto...</> : <><FileText className="w-4 h-4" /> Gerar Boleto</>}
+                </button>
+              </div>
+            )}
+
+            {metodo === "boleto" && boletoResult && (
+              <div className="text-center">
+                <p className="text-green-400 text-sm font-medium mb-4 flex items-center justify-center gap-1.5">
+                  <CheckCircle className="w-4 h-4" /> Boleto gerado com sucesso!
+                </p>
+                {boletoResult.barcode && (
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 mb-1">Código de barras</p>
+                    <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-left">
+                      <span className="text-xs text-gray-300 font-mono truncate flex-1">{boletoResult.barcode}</span>
+                      <button onClick={() => handleCopy(boletoResult.barcode!)} className="shrink-0 text-purple-400 hover:text-purple-300 transition-colors">
+                        {copied ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {boletoResult.boletoUrl && (
+                  <a href={boletoResult.boletoUrl} target="_blank" rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
+                    <ExternalLink className="w-4 h-4" /> Visualizar / Imprimir Boleto
+                  </a>
+                )}
+                <p className="text-xs text-gray-500 mt-4">O plano será ativado em até 3 dias úteis após o pagamento.</p>
+              </div>
+            )}
+
+            {/* Cartão */}
             {metodo === "cartao" && (
               <div>
                 <div id="cardPaymentBrick" />
