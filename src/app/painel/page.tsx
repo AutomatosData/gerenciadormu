@@ -138,15 +138,15 @@ export default function PainelPage() {
   }, [user]);
 
   useEffect(() => {
-    if (user && activeTab === "pagamentos") {
+    if (user && usuarios.length > 0 && activeTab === "pagamentos") {
       fetchAllPagamentos();
     }
-    if (user && activeTab === "historico") {
+    if (user && usuarios.length > 0 && activeTab === "historico") {
       fetchAllHistorico();
       fetchAuthMacs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, user]);
+  }, [activeTab, user, usuarios]);
 
   const fetchAllPagamentos = async () => {
     if (!user || usuarios.length === 0) return;
