@@ -210,16 +210,17 @@ export interface Pagamento {
   dataPagamento: string;
   valor: string;
   metodo: string;
+  status: string;
 }
 
 export async function addPagamento(data: Pagamento): Promise<void> {
   const sheets = await getSheetsClient();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: "PAGAMENTOS!A:E",
+    range: "PAGAMENTOS!A:F",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [[data.idUsuario, data.idPagamento, data.dataPagamento, data.valor, data.metodo]],
+      values: [[data.idUsuario, data.idPagamento, data.dataPagamento, data.valor, data.metodo, data.status]],
     },
   });
 }
@@ -228,7 +229,7 @@ export async function getPagamentosByUsuarioId(idUsuario: string): Promise<Pagam
   const sheets = await getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: "PAGAMENTOS!A2:E",
+    range: "PAGAMENTOS!A2:F",
   });
   const rows = res.data.values || [];
   return rows
@@ -239,6 +240,7 @@ export async function getPagamentosByUsuarioId(idUsuario: string): Promise<Pagam
       dataPagamento: row[2] || "",
       valor: row[3] || "",
       metodo: row[4] || "",
+      status: row[5] || "",
     }));
 }
 

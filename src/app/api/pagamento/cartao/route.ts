@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
         dataPagamento,
         valor,
         metodo: "Cartão de Crédito",
+        status: "Aprovado",
       });
 
       await updateUsuarioPlano(usuario.id, plano.nome, expiraStr);

@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
           dataPagamento,
           valor,
           metodo,
+          status: "Aprovado",
         });
 
         // Update user plan in USUÁRIOS sheet

@@ -38,6 +38,7 @@ interface Pagamento {
   dataPagamento: string;
   valor: string;
   metodo: string;
+  status: string;
 }
 
 interface PagamentoPendente {
@@ -331,7 +332,7 @@ export default function PainelPage() {
   const filteredPagamentos = pagamentos.filter((p) => {
     if (!searchPag) return true;
     const q = searchPag.toLowerCase();
-    return getUsuarioNameById(p.idUsuario).toLowerCase().includes(q) || p.idPagamento.toLowerCase().includes(q) || p.dataPagamento.toLowerCase().includes(q) || p.valor.toLowerCase().includes(q) || p.metodo.toLowerCase().includes(q);
+    return getUsuarioNameById(p.idUsuario).toLowerCase().includes(q) || p.idPagamento.toLowerCase().includes(q) || p.dataPagamento.toLowerCase().includes(q) || p.valor.toLowerCase().includes(q) || p.metodo.toLowerCase().includes(q) || (p.status || "").toLowerCase().includes(q);
   });
   const totalPagesPag = Math.max(1, Math.ceil(filteredPagamentos.length / PAGE_SIZE));
   const pagedPagamentos = filteredPagamentos.slice((pagePag - 1) * PAGE_SIZE, pagePag * PAGE_SIZE);
@@ -810,6 +811,11 @@ export default function PainelPage() {
                           <CreditCard className="w-3.5 h-3.5" /> Método
                         </div>
                       </th>
+                      <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle className="w-3.5 h-3.5" /> Status
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -822,6 +828,19 @@ export default function PainelPage() {
                         <td className="py-3 px-4">
                           <span className="bg-purple-500/10 text-purple-400 px-2.5 py-1 rounded-md text-xs font-medium">
                             {p.metodo}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
+                            p.status === "Aprovado"
+                              ? "bg-green-500/10 text-green-400"
+                              : p.status === "Pendente"
+                              ? "bg-amber-500/10 text-amber-400"
+                              : p.status === "Recusado"
+                              ? "bg-red-500/10 text-red-400"
+                              : "bg-gray-500/10 text-gray-400"
+                          }`}>
+                            {p.status || "—"}
                           </span>
                         </td>
                       </tr>
