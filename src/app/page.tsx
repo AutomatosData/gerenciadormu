@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { Play, Shield, Users, Zap } from "lucide-react";
+import { Play, Shield, Users, Zap, Download } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -82,6 +82,48 @@ export default function Home() {
               allowFullScreen
             />
           */}
+        </div>
+      </section>
+
+      {/* Download Section */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold">
+            Baixe o <span className="text-purple-400">Gerenciador MU</span>
+          </h2>
+          <p className="mt-3 text-gray-400">
+            Tenha o sistema completo para gerenciar seu servidor MU Online.
+          </p>
+        </div>
+        <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-8 hover:border-purple-500/50 transition-colors">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex-1">
+              <h3 className="text-xl font-semibold mb-2">Aplicação Completa</h3>
+              <p className="text-gray-400 mb-4">
+                Versão mais recente do Gerenciador MU com todas as funcionalidades:
+                gestão de usuários, controle de pagamentos, histórico de login e muito mais.
+              </p>
+              <div className="flex flex-wrap gap-2 text-sm">
+                <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full">Windows</span>
+                <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full">Completo</span>
+                <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full">Gratuito</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <a
+                href="https://drive.google.com/drive/folders/1aX_HTzw2UcFGkcwZB-XGVNsr3w23QIsb"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors flex items-center gap-2"
+              >
+                <Download className="w-5 h-5" />
+                Baixar Agora
+              </a>
+              <p className="text-xs text-gray-500 text-center">
+                Acesso ao Google Drive
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
