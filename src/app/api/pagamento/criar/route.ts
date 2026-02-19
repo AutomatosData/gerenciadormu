@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
     }
 
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const host = req.headers.get("host") || "localhost:3000";
+    const protocol = host.startsWith("localhost") ? "http" : "https";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`;
 
     const preference = await preferenceClient.create({
       body: {
