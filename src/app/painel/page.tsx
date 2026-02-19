@@ -45,12 +45,13 @@ interface HistoricoLogin {
 
 interface AuthMac {
   rowIndex: number;
-  idUsuario: string;
+  usuario: string;
+  ip: string;
   mac: string;
   status: "Autorizado" | "Não Autorizado";
 }
 
-type Tab = "perfil" | "usuarios" | "pagamentos" | "authmac" | "historico";
+type Tab = "perfil" | "usuarios" | "pagamentos" | "historico";
 
 const PAGE_SIZE = 10;
 
@@ -111,8 +112,6 @@ export default function PainelPage() {
     }
     if (user && activeTab === "historico") {
       fetchAllHistorico();
-    }
-    if (user && activeTab === "authmac") {
       fetchAuthMacs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -299,7 +298,7 @@ export default function PainelPage() {
   const filteredMacs = authMacs.filter((m) => {
     if (!searchMac) return true;
     const q = searchMac.toLowerCase();
-    return m.mac.toLowerCase().includes(q) || getUsuarioNameById(m.idUsuario).toLowerCase().includes(q) || m.status.toLowerCase().includes(q);
+    return m.mac.toLowerCase().includes(q) || m.usuario.toLowerCase().includes(q) || m.ip.toLowerCase().includes(q) || m.status.toLowerCase().includes(q);
   });
   const totalPagesMac = Math.max(1, Math.ceil(filteredMacs.length / PAGE_SIZE));
   const pagedMacs = filteredMacs.slice((pageMac - 1) * PAGE_SIZE, pageMac * PAGE_SIZE);
@@ -324,7 +323,6 @@ export default function PainelPage() {
     { key: "usuarios", label: "Meus Usuários", icon: <Users className="w-4 h-4" /> },
     { key: "perfil", label: "Minha Conta", icon: <UserCog className="w-4 h-4" /> },
     { key: "pagamentos", label: "Pagamentos", icon: <CreditCard className="w-4 h-4" /> },
-    { key: "authmac", label: "MACs Autorizados", icon: <Wifi className="w-4 h-4" /> },
     { key: "historico", label: "Histórico de Login", icon: <Clock className="w-4 h-4" /> },
   ];
 
@@ -698,17 +696,19 @@ export default function PainelPage() {
         </div>
       )}
 
-      {/* ==================== AUTHMAC TAB ==================== */}
-      {activeTab === "authmac" && (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Wifi className="w-5 h-5 text-purple-400" />
-              MACs Autorizados
-            </h2>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+      {/* ==================== HISTORICO TAB ==================== */}
+      {activeTab === "historico" && (
+        <div className="space-y-6">
+
+          {/* AUTHMAC table */}
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Wifi className="w-5 h-5 text-purple-400" />
+                MACs Autorizados
+              </h2>
               {authMacs.length > 0 && (
-                <div className="relative flex-1 sm:w-64">
+                <div className="relative w-full sm:w-64">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                   <input
                     type="text"
@@ -719,134 +719,121 @@ export default function PainelPage() {
                   />
                 </div>
               )}
-              <button
-                onClick={fetchAuthMacs}
-                disabled={loadingMacs}
-                className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
-              >
-                {loadingMacs ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wifi className="w-4 h-4" />}
-                Atualizar
-              </button>
             </div>
-          </div>
 
-          {loadingMacs ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-            </div>
-          ) : authMacs.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Wifi className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>Nenhum MAC registrado</p>
-              <p className="text-sm mt-1 text-gray-600">Os MACs serão registrados automaticamente ao fazer login.</p>
-            </div>
-          ) : filteredMacs.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Search className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p>Nenhum resultado para &quot;{searchMac}&quot;</p>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-800">
-                      <th className="text-left py-3 px-4 text-gray-400 font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <Gamepad2 className="w-3.5 h-3.5" /> Usuário
-                        </div>
-                      </th>
-                      <th className="text-left py-3 px-4 text-gray-400 font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <Monitor className="w-3.5 h-3.5" /> MAC
-                        </div>
-                      </th>
-                      <th className="text-left py-3 px-4 text-gray-400 font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <Shield className="w-3.5 h-3.5" /> Status
-                        </div>
-                      </th>
-                      <th className="text-center py-3 px-4 text-gray-400 font-medium">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedMacs.map((m) => (
-                      <tr key={m.rowIndex} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                        <td className="py-3 px-4 text-purple-400 font-medium">{getUsuarioNameById(m.idUsuario)}</td>
-                        <td className="py-3 px-4 text-white font-mono text-xs">{m.mac}</td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${
-                            m.status === "Autorizado"
-                              ? "bg-green-500/10 text-green-400"
-                              : "bg-red-500/10 text-red-400"
-                          }`}>
-                            {m.status === "Autorizado"
-                              ? <CheckCircle className="w-3.5 h-3.5" />
-                              : <XCircle className="w-3.5 h-3.5" />
-                            }
-                            {m.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={() => toggleMacStatus(m)}
-                            disabled={togglingMac === m.rowIndex}
-                            title={m.status === "Autorizado" ? "Bloquear MAC" : "Autorizar MAC"}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                              m.status === "Autorizado"
-                                ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
-                                : "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20"
-                            }`}
-                          >
-                            {togglingMac === m.rowIndex ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : m.status === "Autorizado" ? (
-                              <><XCircle className="w-3.5 h-3.5" /> Bloquear</>
-                            ) : (
-                              <><CheckCircle className="w-3.5 h-3.5" /> Autorizar</>
-                            )}
-                          </button>
-                        </td>
+            {loadingMacs ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+              </div>
+            ) : authMacs.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">
+                <Wifi className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>Nenhum MAC registrado</p>
+                <p className="text-sm mt-1 text-gray-600">Os MACs serão registrados automaticamente ao fazer login.</p>
+              </div>
+            ) : filteredMacs.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Search className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p>Nenhum resultado para &quot;{searchMac}&quot;</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-800">
+                        <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                          <div className="flex items-center gap-1.5"><Gamepad2 className="w-3.5 h-3.5" /> Usuário</div>
+                        </th>
+                        <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                          <div className="flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" /> IP</div>
+                        </th>
+                        <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                          <div className="flex items-center gap-1.5"><Monitor className="w-3.5 h-3.5" /> MAC</div>
+                        </th>
+                        <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                          <div className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" /> Status</div>
+                        </th>
+                        <th className="text-center py-3 px-4 text-gray-400 font-medium">Ação</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {totalPagesMac > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800">
-                  <span className="text-xs text-gray-500">{filteredMacs.length} resultado(s) — Página {pageMac} de {totalPagesMac}</span>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => setPageMac((p) => Math.max(1, p - 1))} disabled={pageMac === 1} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="w-4 h-4" /></button>
-                    <button onClick={() => setPageMac((p) => Math.min(totalPagesMac, p + 1))} disabled={pageMac === totalPagesMac} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronRight className="w-4 h-4" /></button>
-                  </div>
+                    </thead>
+                    <tbody>
+                      {pagedMacs.map((m) => (
+                        <tr key={m.rowIndex} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                          <td className="py-3 px-4 text-purple-400 font-medium">{m.usuario}</td>
+                          <td className="py-3 px-4 text-white font-mono text-xs">{m.ip}</td>
+                          <td className="py-3 px-4 text-white font-mono text-xs">{m.mac}</td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${
+                              m.status === "Autorizado"
+                                ? "bg-green-500/10 text-green-400"
+                                : "bg-red-500/10 text-red-400"
+                            }`}>
+                              {m.status === "Autorizado"
+                                ? <CheckCircle className="w-3.5 h-3.5" />
+                                : <XCircle className="w-3.5 h-3.5" />
+                              }
+                              {m.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <button
+                              onClick={() => toggleMacStatus(m)}
+                              disabled={togglingMac === m.rowIndex}
+                              title={m.status === "Autorizado" ? "Bloquear MAC" : "Autorizar MAC"}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                m.status === "Autorizado"
+                                  ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                                  : "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20"
+                              }`}
+                            >
+                              {togglingMac === m.rowIndex ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : m.status === "Autorizado" ? (
+                                <><XCircle className="w-3.5 h-3.5" /> Bloquear</>
+                              ) : (
+                                <><CheckCircle className="w-3.5 h-3.5" /> Autorizar</>
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ==================== HISTORICO TAB ==================== */}
-      {activeTab === "historico" && (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Shield className="w-5 h-5 text-purple-400" />
-              Histórico de Login
-            </h2>
-            {historico.length > 0 && (
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input
-                  type="text"
-                  value={searchHist}
-                  onChange={(e) => { setSearchHist(e.target.value); setPageHist(1); }}
-                  placeholder="Buscar no histórico..."
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                />
-              </div>
+                {totalPagesMac > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800">
+                    <span className="text-xs text-gray-500">{filteredMacs.length} resultado(s) — Página {pageMac} de {totalPagesMac}</span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setPageMac((p) => Math.max(1, p - 1))} disabled={pageMac === 1} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                      <button onClick={() => setPageMac((p) => Math.min(totalPagesMac, p + 1))} disabled={pageMac === totalPagesMac} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><ChevronRight className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
+
+          {/* Histórico de Login table */}
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Shield className="w-5 h-5 text-purple-400" />
+                Histórico de Login
+              </h2>
+              {historico.length > 0 && (
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <input
+                    type="text"
+                    value={searchHist}
+                    onChange={(e) => { setSearchHist(e.target.value); setPageHist(1); }}
+                    placeholder="Buscar no histórico..."
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  />
+                </div>
+              )}
+            </div>
 
           {loadingHist ? (
             <div className="flex items-center justify-center py-12">
@@ -913,6 +900,7 @@ export default function PainelPage() {
               )}
             </>
           )}
+          </div>
         </div>
       )}
     </div>
