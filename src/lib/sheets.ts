@@ -247,7 +247,6 @@ export async function getPagamentosByUsuarioId(idUsuario: string): Promise<Pagam
 export interface AuthMac {
   rowIndex: number;
   usuario: string;
-  ip: string;
   mac: string;
   status: "Autorizado" | "Não Autorizado";
 }
@@ -260,16 +259,15 @@ export async function getAuthMacsByPai(usuarioPai: string): Promise<AuthMac[]> {
   const sheets = await getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: "AUTHMAC!A2:D",
+    range: "AUTHMAC!A2:C",
   });
   const rows = res.data.values || [];
   return rows
     .map((row, i) => ({
       rowIndex: i + 2,
       usuario: row[0] || "",
-      ip: row[1] || "",
-      mac: row[2] || "",
-      status: (row[3] || "Não Autorizado") as AuthMac["status"],
+      mac: row[1] || "",
+      status: (row[2] || "Não Autorizado") as AuthMac["status"],
     }))
     .filter((r) => nomes.includes(r.usuario.toLowerCase()));
 }
@@ -278,7 +276,7 @@ export async function updateAuthMacStatus(rowIndex: number, status: AuthMac["sta
   const sheets = await getSheetsClient();
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `AUTHMAC!D${rowIndex}`,
+    range: `AUTHMAC!C${rowIndex}`,
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [[status]] },
   });

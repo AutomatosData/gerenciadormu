@@ -46,7 +46,6 @@ interface HistoricoLogin {
 interface AuthMac {
   rowIndex: number;
   usuario: string;
-  ip: string;
   mac: string;
   status: "Autorizado" | "Não Autorizado";
 }
@@ -298,7 +297,7 @@ export default function PainelPage() {
   const filteredMacs = authMacs.filter((m) => {
     if (!searchMac) return true;
     const q = searchMac.toLowerCase();
-    return m.mac.toLowerCase().includes(q) || m.usuario.toLowerCase().includes(q) || m.ip.toLowerCase().includes(q) || m.status.toLowerCase().includes(q);
+    return m.mac.toLowerCase().includes(q) || m.usuario.toLowerCase().includes(q) || m.status.toLowerCase().includes(q);
   });
   const totalPagesMac = Math.max(1, Math.ceil(filteredMacs.length / PAGE_SIZE));
   const pagedMacs = filteredMacs.slice((pageMac - 1) * PAGE_SIZE, pageMac * PAGE_SIZE);
@@ -746,9 +745,6 @@ export default function PainelPage() {
                           <div className="flex items-center gap-1.5"><Gamepad2 className="w-3.5 h-3.5" /> Usuário</div>
                         </th>
                         <th className="text-left py-3 px-4 text-gray-400 font-medium">
-                          <div className="flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" /> IP</div>
-                        </th>
-                        <th className="text-left py-3 px-4 text-gray-400 font-medium">
                           <div className="flex items-center gap-1.5"><Monitor className="w-3.5 h-3.5" /> MAC</div>
                         </th>
                         <th className="text-left py-3 px-4 text-gray-400 font-medium">
@@ -761,7 +757,6 @@ export default function PainelPage() {
                       {pagedMacs.map((m) => (
                         <tr key={m.rowIndex} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                           <td className="py-3 px-4 text-purple-400 font-medium">{m.usuario}</td>
-                          <td className="py-3 px-4 text-white font-mono text-xs">{m.ip}</td>
                           <td className="py-3 px-4 text-white font-mono text-xs">{m.mac}</td>
                           <td className="py-3 px-4">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${
