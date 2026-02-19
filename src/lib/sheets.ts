@@ -242,6 +242,65 @@ export async function getPagamentosByUsuarioId(idUsuario: string): Promise<Pagam
     }));
 }
 
+// ==================== AUTHMAC ====================
+
+export interface AuthMac {
+  rowIndex: number;
+  idUsuario: string;
+  mac: string;
+  status: "Autorizado" | "Não Autorizado";
+}
+
+export async function getAuthMacsByUsuarioId(idUsuario: string): Promise<AuthMac[]> {
+  const sheets = await getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "AUTHMAC!A2:C",
+  });
+  const rows = res.data.values || [];
+  return rows
+    .map((row, i) => ({ rowIndex: i + 2, idUsuario: row[0] || "", mac: row[1] || "", status: (row[2] || "Não Autorizado") as AuthMac["status"] }))
+    .filter((r) => r.idUsuario === idUsuario);
+}
+
+export async function getAuthMacsByPai(usuarioPai: string): Promise<AuthMac[]> {
+  const usuarios = await getUsuarios();
+  const ids = usuarios.filter((u) => u.usuarioPai.toLowerCase() === usuarioPai.toLowerCase()).map((u) => u.id);
+  const sheets = await getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "AUTHMAC!A2:C",
+  });
+  const rows = res.data.values || [];
+  return rows
+    .map((row, i) => ({ rowIndex: i + 2, idUsuario: row[0] || "", mac: row[1] || "", status: (row[2] || "Não Autorizado") as AuthMac["status"] }))
+    .filter((r) => ids.includes(r.idUsuario));
+}
+
+export async function addAuthMac(data: { idUsuario: string; mac: string; status: AuthMac["status"] }): Promise<AuthMac> {
+  const sheets = await getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "AUTHMAC!A:C",
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[data.idUsuario, data.mac, data.status]] },
+  });
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: "AUTHMAC!A2:C" });
+  const rows = res.data.values || [];
+  const rowIndex = rows.length + 1;
+  return { rowIndex, idUsuario: data.idUsuario, mac: data.mac, status: data.status };
+}
+
+export async function updateAuthMacStatus(rowIndex: number, status: AuthMac["status"]): Promise<void> {
+  const sheets = await getSheetsClient();
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `AUTHMAC!C${rowIndex}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[status]] },
+  });
+}
+
 // ==================== HISTÓRICO ====================
 
 export interface HistoricoLogin {
