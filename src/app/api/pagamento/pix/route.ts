@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { paymentClient, getPlanoById } from "@/lib/mercadopago";
-import { getUsuarioById } from "@/lib/sheets";
+import { getUsuarioById, addPagamento } from "@/lib/sheets";
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,6 +37,15 @@ export async function POST(req: NextRequest) {
     });
 
     const txData = payment.point_of_interaction?.transaction_data;
+
+    await addPagamento({
+      idUsuario: usuario.id,
+      idPagamento: String(payment.id),
+      dataPagamento: new Date().toLocaleDateString("pt-BR"),
+      valor: `R$ ${plano.preco.toFixed(2).replace(".", ",")}`,
+      metodo: "PIX",
+      status: "Pendente",
+    });
 
     return NextResponse.json({
       id: payment.id,

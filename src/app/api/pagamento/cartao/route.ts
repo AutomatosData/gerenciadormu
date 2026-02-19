@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { paymentClient, getPlanoById } from "@/lib/mercadopago";
-import { getUsuarioById, addPagamento, updateUsuarioPlano } from "@/lib/sheets";
+import { getUsuarioById, addPagamento, updatePagamentoStatus, updateUsuarioPlano } from "@/lib/sheets";
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,16 +43,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    const dataPagamento = new Date().toLocaleDateString("pt-BR");
+    const valor = `R$ ${plano.preco.toFixed(2).replace(".", ",")}`;
+    const paymentIdStr = String(payment.id);
+
     if (payment.status === "approved") {
       const expiraDate = new Date();
       expiraDate.setDate(expiraDate.getDate() + plano.dias);
       const expiraStr = expiraDate.toLocaleDateString("pt-BR");
-      const dataPagamento = new Date().toLocaleDateString("pt-BR");
-      const valor = `R$ ${plano.preco.toFixed(2).replace(".", ",")}`;
 
       await addPagamento({
         idUsuario: usuario.id,
-        idPagamento: String(payment.id),
+        idPagamento: paymentIdStr,
         dataPagamento,
         valor,
         metodo: "Cartão de Crédito",
@@ -60,6 +62,15 @@ export async function POST(req: NextRequest) {
       });
 
       await updateUsuarioPlano(usuario.id, plano.nome, expiraStr);
+    } else if (payment.status === "in_process" || payment.status === "pending") {
+      await addPagamento({
+        idUsuario: usuario.id,
+        idPagamento: paymentIdStr,
+        dataPagamento,
+        valor,
+        metodo: "Cartão de Crédito",
+        status: "Pendente",
+      });
     }
 
     return NextResponse.json({

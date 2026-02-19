@@ -225,6 +225,25 @@ export async function addPagamento(data: Pagamento): Promise<void> {
   });
 }
 
+export async function updatePagamentoStatus(idPagamento: string, status: string): Promise<boolean> {
+  const sheets = await getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "PAGAMENTOS!A2:F",
+  });
+  const rows = res.data.values || [];
+  const rowIndex = rows.findIndex((row) => row[1] === String(idPagamento));
+  if (rowIndex === -1) return false;
+  const sheetRow = rowIndex + 2;
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `PAGAMENTOS!F${sheetRow}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [[status]] },
+  });
+  return true;
+}
+
 export async function getPagamentosByUsuarioId(idUsuario: string): Promise<Pagamento[]> {
   const sheets = await getSheetsClient();
   const res = await sheets.spreadsheets.values.get({

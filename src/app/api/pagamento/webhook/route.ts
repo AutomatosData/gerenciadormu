@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { paymentClient } from "@/lib/mercadopago";
-import { addPagamento, updateUsuarioPlano } from "@/lib/sheets";
+import { addPagamento, updatePagamentoStatus, updateUsuarioPlano } from "@/lib/sheets";
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,15 +44,19 @@ export async function POST(req: NextRequest) {
         // Determine payment method
         const metodo = mapPaymentMethod(payment.payment_type_id || "");
 
-        // Add payment record to PAGAMENTOS sheet
-        await addPagamento({
-          idUsuario: userId,
-          idPagamento: String(payment.id),
-          dataPagamento,
-          valor,
-          metodo,
-          status: "Aprovado",
-        });
+        // Update existing record or insert new one
+        const paymentIdStr = String(payment.id);
+        const updated = await updatePagamentoStatus(paymentIdStr, "Aprovado");
+        if (!updated) {
+          await addPagamento({
+            idUsuario: userId,
+            idPagamento: paymentIdStr,
+            dataPagamento,
+            valor,
+            metodo,
+            status: "Aprovado",
+          });
+        }
 
         // Update user plan in USUÁRIOS sheet
         await updateUsuarioPlano(userId, planoNome || "Premium", expiraStr);
