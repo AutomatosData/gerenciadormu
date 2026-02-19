@@ -11,7 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Gerenciador MU",
-  description: "Gerencie seus usuários e cadastros do MU Online",
+  description: "Um Gerenciador de Personagens para o jogo MU Online, com Relogin Automático, Automação para Eventos de Ruud e muito mais.",
 };
 
 export default function RootLayout({
