@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="7" fill="#0f0f1a"/>
+  <!-- Gamepad2 from lucide, scaled to fit 32x32 with padding -->
+  <g transform="translate(3, 5) scale(1.08)">
+    <line x1="12" y1="8" x2="12" y2="12" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="10" y1="10" x2="14" y2="10" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="17" y1="11" x2="17.01" y2="11" stroke="#a855f7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="20" y1="9" x2="20.01" y2="9" stroke="#a855f7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M13 2H11C7.134 2 4 5.134 4 9v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9c0-3.866-3.134-7-7-7z" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M4 10c-.88 1.954-1 3.5-1 4 0 1.105.895 2 2 2h1" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20 10c.88 1.954 1 3.5 1 4 0 1.105-.895 2-2 2h-1" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
