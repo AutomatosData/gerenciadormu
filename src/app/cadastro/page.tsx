@@ -18,8 +18,24 @@ export default function CadastroPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 10) {
+      return digits
+        .replace(/(\d{2})(\d)/, "($1) $2")
+        .replace(/(\d{4})(\d)/, "$1-$2");
+    }
+    return digits
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{5})(\d)/, "$1-$2");
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    if (e.target.name === "whatsapp") {
+      setForm({ ...form, whatsapp: formatPhone(e.target.value) });
+    } else {
+      setForm({ ...form, [e.target.name]: e.target.value });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +51,7 @@ export default function CadastroPage() {
           nome: form.nome,
           usuarioPai: form.usuarioPai,
           email: form.email,
-          whatsapp: form.whatsapp,
+          whatsapp: form.whatsapp.replace(/\D/g, ""),
           isParent: true,
         }),
       });
@@ -137,6 +153,7 @@ export default function CadastroPage() {
               value={form.whatsapp}
               onChange={handleChange}
               placeholder="(00) 00000-0000"
+              inputMode="numeric"
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
             />
           </div>

@@ -83,9 +83,10 @@ export default function PainelPage() {
       setForm({
         nome: user.nome,
         email: user.email,
-        whatsapp: user.whatsapp,
+        whatsapp: formatPhone(user.whatsapp),
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
@@ -142,8 +143,24 @@ export default function PainelPage() {
     setLoadingHist(false);
   };
 
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 10) {
+      return digits
+        .replace(/(\d{2})(\d)/, "($1) $2")
+        .replace(/(\d{4})(\d)/, "$1-$2");
+    }
+    return digits
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{5})(\d)/, "$1-$2");
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    if (e.target.name === "whatsapp") {
+      setForm({ ...form, whatsapp: formatPhone(e.target.value) });
+    } else {
+      setForm({ ...form, [e.target.name]: e.target.value });
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -156,7 +173,7 @@ export default function PainelPage() {
       const res = await fetch(`/api/usuarios/${user.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, whatsapp: form.whatsapp.replace(/\D/g, "") }),
       });
       const data = await res.json();
 
@@ -490,6 +507,8 @@ export default function PainelPage() {
                   type="text"
                   value={form.whatsapp}
                   onChange={handleChange}
+                  placeholder="(00) 00000-0000"
+                  inputMode="numeric"
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 />
               </div>
