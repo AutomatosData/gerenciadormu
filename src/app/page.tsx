@@ -22,7 +22,7 @@ export default function Home() {
             </h1>
             <p className="mt-6 text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
               Gerencie seus usuários, acompanhe pagamentos e tenha controle total
-              do seu servidor MU Online em um só lugar.
+              dos seus personagens de MU Online em um só lugar.
             </p>
             <div className="mt-10 flex items-center justify-center gap-4">
               {user ? (
@@ -92,7 +92,7 @@ export default function Home() {
             Baixe o <span className="text-purple-400">Gerenciador MU</span>
           </h2>
           <p className="mt-3 text-gray-400">
-            Tenha o sistema completo para gerenciar seu servidor MU Online.
+            Tenha o sistema completo para gerenciar seu personagens de MU Online.
           </p>
         </div>
         <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-8 hover:border-purple-500/50 transition-colors">
@@ -101,7 +101,7 @@ export default function Home() {
               <h3 className="text-xl font-semibold mb-2">Aplicação Completa</h3>
               <p className="text-gray-400 mb-4">
                 Versão mais recente do Gerenciador MU com todas as funcionalidades:
-                gestão de usuários, controle de pagamentos, histórico de login e muito mais.
+                AutoBC, AutoDS, AutoCC e AutoLogin e muito mais!
               </p>
               <div className="flex flex-wrap gap-2 text-sm">
                 <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full">Windows</span>
@@ -134,7 +134,7 @@ export default function Home() {
             <Users className="w-10 h-10 text-purple-500 mb-4" />
             <h3 className="text-xl font-semibold mb-2">Gestão de Usuários</h3>
             <p className="text-gray-400">
-              Cadastre e gerencie todos os usuários do seu servidor com facilidade.
+              Cadastre e gerencie todos os seus usuários com facilidade.
             </p>
           </div>
           <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-8 hover:border-purple-500/50 transition-colors">
