@@ -303,6 +303,26 @@ export async function updateAuthMacStatus(rowIndex: number, status: AuthMac["sta
   });
 }
 
+// ==================== SUPORTE ====================
+
+export async function addSuporte(data: {
+  usuarioPai: string;
+  assunto: string;
+  descricao: string;
+  contato?: string;
+}): Promise<void> {
+  const sheets = await getSheetsClient();
+  const data_br = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "SUPORTE!A:D",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[data_br, data.usuarioPai || data.contato || "", data.assunto, data.descricao]],
+    },
+  });
+}
+
 // ==================== HISTÓRICO ====================
 
 export interface HistoricoLogin {
