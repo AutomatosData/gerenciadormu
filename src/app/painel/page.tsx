@@ -669,7 +669,7 @@ export default function PainelPage() {
               </div>
               <h3 className="text-lg font-semibold mb-2">Cancelar Pagamento</h3>
               <p className="text-sm text-gray-400">
-                Tem certeza que deseja cancelar este pagamento? Esta ação não pode ser desfeita.
+                Tem certeza que deseja cancelar este pagamento?
               </p>
             </div>
             <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3 mb-6 space-y-1">
@@ -700,7 +700,7 @@ export default function PainelPage() {
               >
                 {cancelando === confirmarCancelar.idPagamento
                   ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <XCircle className="w-4 h-4" />}
+                  : null}
                 Cancelar Pagamento
               </button>
             </div>
