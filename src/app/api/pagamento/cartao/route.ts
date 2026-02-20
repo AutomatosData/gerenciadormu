@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
     }
 
+    const externalRef = `${usuario.id}_${plano.id}_${Date.now()}`;
     const payment = await paymentClient.create({
       body: {
         transaction_amount: plano.preco,
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
         payer: {
           email: email || usuario.email,
         },
-        external_reference: `${usuario.id}_${plano.id}_${Date.now()}`,
+        external_reference: externalRef,
         metadata: {
           user_id: usuario.id,
           user_name: usuario.usuario,
@@ -48,10 +49,6 @@ export async function POST(req: NextRequest) {
     const paymentIdStr = String(payment.id);
 
     if (payment.status === "approved") {
-      const expiraDate = new Date();
-      expiraDate.setDate(expiraDate.getDate() + plano.dias);
-      const expiraStr = expiraDate.toLocaleDateString("pt-BR");
-
       await addPagamento({
         idUsuario: usuario.id,
         idPagamento: paymentIdStr,
@@ -59,9 +56,10 @@ export async function POST(req: NextRequest) {
         valor,
         metodo: "Cartão de Crédito",
         status: "Aprovado",
+        externalReference: externalRef,
       });
 
-      await updateUsuarioPlano(usuario.id, plano.nome, expiraStr);
+      await updateUsuarioPlano(usuario.id, plano.nome, plano.dias);
     } else if (payment.status === "in_process" || payment.status === "pending") {
       await addPagamento({
         idUsuario: usuario.id,
@@ -70,6 +68,7 @@ export async function POST(req: NextRequest) {
         valor,
         metodo: "Cartão de Crédito",
         status: "Pendente",
+        externalReference: externalRef,
       });
     }
 

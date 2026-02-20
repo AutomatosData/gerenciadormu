@@ -180,7 +180,7 @@ export async function updateUsuario(id: string, data: { nome?: string; usuario?:
   return updated;
 }
 
-export async function updateUsuarioPlano(id: string, plano: string, expira: string): Promise<void> {
+export async function updateUsuarioPlano(id: string, plano: string, dias: number): Promise<void> {
   const sheets = await getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
@@ -192,12 +192,33 @@ export async function updateUsuarioPlano(id: string, plano: string, expira: stri
 
   const row = rows[rowIndex];
   const sheetRow = rowIndex + 2;
+
+  // Lógica de expiração: se a data atual >= hoje, adiciona dias em cima; senão usa hoje + dias
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  let baseDate = hoje;
+  const expiraAtual = row[5] || "";
+  if (expiraAtual) {
+    const partes = expiraAtual.split("/");
+    if (partes.length === 3) {
+      const dataAtual = new Date(Number(partes[2]), Number(partes[1]) - 1, Number(partes[0]));
+      if (!isNaN(dataAtual.getTime()) && dataAtual >= hoje) {
+        baseDate = dataAtual;
+      }
+    }
+  }
+
+  const novaExpira = new Date(baseDate);
+  novaExpira.setDate(novaExpira.getDate() + dias);
+  const expiraStr = novaExpira.toLocaleDateString("pt-BR");
+
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `USUÁRIOS!A${sheetRow}:H${sheetRow}`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [[row[0], row[1], row[2], row[3], plano, expira, row[6], row[7]]],
+      values: [[row[0], row[1], row[2], row[3], plano, expiraStr, row[6], row[7]]],
     },
   });
 }
@@ -211,16 +232,17 @@ export interface Pagamento {
   valor: string;
   metodo: string;
   status: string;
+  externalReference: string;
 }
 
 export async function addPagamento(data: Pagamento): Promise<void> {
   const sheets = await getSheetsClient();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: "PAGAMENTOS!A:F",
+    range: "PAGAMENTOS!A:G",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [[data.idUsuario, data.idPagamento, data.dataPagamento, data.valor, data.metodo, data.status]],
+      values: [[data.idUsuario, data.idPagamento, data.dataPagamento, data.valor, data.metodo, data.status, data.externalReference]],
     },
   });
 }
@@ -229,7 +251,7 @@ export async function updatePagamentoStatus(idPagamento: string, status: string)
   const sheets = await getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: "PAGAMENTOS!A2:F",
+    range: "PAGAMENTOS!A2:G",
   });
   const rows = res.data.values || [];
   const rowIndex = rows.findIndex((row) => row[1] === String(idPagamento));
@@ -248,7 +270,7 @@ export async function getPagamentosByUsuarioId(idUsuario: string): Promise<Pagam
   const sheets = await getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: "PAGAMENTOS!A2:F",
+    range: "PAGAMENTOS!A2:G",
   });
   const rows = res.data.values || [];
   return rows
@@ -260,6 +282,7 @@ export async function getPagamentosByUsuarioId(idUsuario: string): Promise<Pagam
       valor: row[3] || "",
       metodo: row[4] || "",
       status: row[5] || "",
+      externalReference: row[6] || "",
     }));
 }
 

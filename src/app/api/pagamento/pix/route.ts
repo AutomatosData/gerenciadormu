@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
     if (!payerEmail) payerEmail = "suporte@gerenciadormu.com.br";
     if (!payerName) payerName = "Usuário";
 
+    const externalRef = `${usuario.id}_${plano.id}_${Date.now()}`;
     const payment = await paymentClient.create({
       body: {
         transaction_amount: plano.preco,
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
           email: payerEmail,
           first_name: payerName,
         },
-        external_reference: `${usuario.id}_${plano.id}_${Date.now()}`,
+        external_reference: externalRef,
         metadata: {
           user_id: usuario.id,
           user_name: usuario.usuario,
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
       valor: `R$ ${plano.preco.toFixed(2).replace(".", ",")}`,
       metodo: "PIX",
       status: "Pendente",
+      externalReference: externalRef,
     });
 
     return NextResponse.json({

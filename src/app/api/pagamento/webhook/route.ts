@@ -29,11 +29,6 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ received: true });
         }
 
-        // Calculate expiration date
-        const expiraDate = new Date();
-        expiraDate.setDate(expiraDate.getDate() + planoDias);
-        const expiraStr = expiraDate.toLocaleDateString("pt-BR");
-
         // Format payment date
         const dataPagamento = new Date(payment.date_approved || payment.date_created || Date.now())
           .toLocaleDateString("pt-BR");
@@ -46,6 +41,7 @@ export async function POST(req: NextRequest) {
 
         // Update existing record or insert new one
         const paymentIdStr = String(payment.id);
+        const externalRef = String(payment.external_reference || "");
         const updated = await updatePagamentoStatus(paymentIdStr, "Aprovado");
         if (!updated) {
           await addPagamento({
@@ -55,13 +51,14 @@ export async function POST(req: NextRequest) {
             valor,
             metodo,
             status: "Aprovado",
+            externalReference: externalRef,
           });
         }
 
-        // Update user plan in USUÁRIOS sheet
-        await updateUsuarioPlano(userId, planoNome || "Premium", expiraStr);
+        // Update user plan in USUÁRIOS sheet (lógica de expiração inteligente em updateUsuarioPlano)
+        await updateUsuarioPlano(userId, planoNome || "Premium", planoDias);
 
-        console.log(`Payment ${payment.id} approved for user ${userId}. Plan: ${planoNome}, Expires: ${expiraStr}`);
+        console.log(`Payment ${payment.id} approved for user ${userId}. Plan: ${planoNome}, Days: ${planoDias}`);
       } else {
         console.log(`Payment ${payment.id} status: ${payment.status}`);
       }
