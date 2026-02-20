@@ -102,6 +102,7 @@ function PagamentoContent() {
   }, [authLoading, user, router]);
 
   useEffect(() => {
+    if (authLoading || childUsuarios.length === 0) return;
     const usuarioParam = searchParams.get("usuario");
     if (usuarioParam && childUsuarios.some((u) => u.id === usuarioParam)) {
       setSelectedUsuarioId(usuarioParam);
@@ -109,7 +110,7 @@ function PagamentoContent() {
       setSelectedUsuarioId(childUsuarios[0].id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, usuarios]);
+  }, [searchParams, usuarios, authLoading]);
 
   useEffect(() => {
     setPixResult(null); setBoletoResult(null); setError("");

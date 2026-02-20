@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { paymentClient, getPlanoById } from "@/lib/mercadopago";
-import { getUsuarioById, addPagamento } from "@/lib/sheets";
+import { getUsuarioById, getUsuarios, addPagamento } from "@/lib/sheets";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,15 +16,31 @@ export async function POST(req: NextRequest) {
     const usuario = await getUsuarioById(userId);
     if (!usuario) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
 
+    // Filho pode não ter email — buscar a conta pai
+    let payerEmail = usuario.email;
+    let payerNome = usuario.nome || usuario.usuarioPai || "Usuário";
+    if (!payerEmail && usuario.usuarioPai) {
+      const todos = await getUsuarios();
+      const pai = todos.find((u) =>
+        u.usuarioPai === "" &&
+        u.email &&
+        (u.nome.toLowerCase() === usuario.usuarioPai.toLowerCase() ||
+          u.usuario.toLowerCase() === usuario.usuarioPai.toLowerCase())
+      );
+      if (pai) { payerEmail = pai.email; payerNome = pai.nome || payerNome; }
+    }
+    if (!payerEmail) payerEmail = "pagamento@gerenciadormu.com.br";
+    if (!payerNome) payerNome = "Usuário";
+
     const payment = await paymentClient.create({
       body: {
         transaction_amount: plano.preco,
         description: `Gerenciador MU - Plano ${plano.nome}`,
         payment_method_id: "bolbradesco",
         payer: {
-          email: usuario.email,
-          first_name: usuario.nome.split(" ")[0],
-          last_name: usuario.nome.split(" ").slice(1).join(" ") || usuario.nome.split(" ")[0],
+          email: payerEmail,
+          first_name: payerNome.split(" ")[0],
+          last_name: payerNome.split(" ").slice(1).join(" ") || payerNome.split(" ")[0],
           identification: {
             type: "CPF",
             number: cpf.replace(/\D/g, ""),

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { paymentClient, getPlanoById } from "@/lib/mercadopago";
-import { getUsuarioById, addPagamento } from "@/lib/sheets";
+import { getUsuarioById, getUsuarios, addPagamento } from "@/lib/sheets";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,14 +16,30 @@ export async function POST(req: NextRequest) {
     const usuario = await getUsuarioById(userId);
     if (!usuario) return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
 
+    // Filho pode não ter email — buscar a conta pai (usuarioPai vazio, nome/usuario = usuarioPai do filho)
+    let payerEmail = usuario.email;
+    let payerName = usuario.nome || "Usuário";
+    if (!payerEmail && usuario.usuarioPai) {
+      const todos = await getUsuarios();
+      const pai = todos.find((u) =>
+        u.usuarioPai === "" &&
+        u.email &&
+        (u.nome.toLowerCase() === usuario.usuarioPai.toLowerCase() ||
+          u.usuario.toLowerCase() === usuario.usuarioPai.toLowerCase())
+      );
+      if (pai) { payerEmail = pai.email; payerName = pai.nome || payerName; }
+    }
+    if (!payerEmail) payerEmail = "pagamento@gerenciadormu.com.br";
+    if (!payerName) payerName = "Usuário";
+
     const payment = await paymentClient.create({
       body: {
         transaction_amount: plano.preco,
         description: `Gerenciador MU - Plano ${plano.nome}`,
         payment_method_id: "pix",
         payer: {
-          email: usuario.email,
-          first_name: usuario.nome,
+          email: payerEmail,
+          first_name: payerName,
         },
         external_reference: `${usuario.id}_${plano.id}_${Date.now()}`,
         metadata: {
