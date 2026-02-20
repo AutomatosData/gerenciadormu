@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       );
       if (pai) { payerEmail = pai.email; payerName = pai.nome || payerName; }
     }
-    if (!payerEmail) payerEmail = "pagamento@gerenciadormu.com.br";
+    if (!payerEmail) payerEmail = "suporte@gerenciadormu.com.br";
     if (!payerName) payerName = "Usuário";
 
     const payment = await paymentClient.create({
