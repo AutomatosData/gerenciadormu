@@ -106,7 +106,6 @@ export default function Home() {
               <div className="flex flex-wrap gap-2 text-sm">
                 <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full">Windows</span>
                 <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full">Completo</span>
-                <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full">Gratuito</span>
               </div>
             </div>
             <div className="flex flex-col gap-3">

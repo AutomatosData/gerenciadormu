@@ -101,6 +101,7 @@ export default function PainelPage() {
   const [detalhesModal, setDetalhesModal] = useState<{ pagamento: Pagamento; detalhes: DetalhesPagamento | null } | null>(null);
   const [loadingDetalhes, setLoadingDetalhes] = useState(false);
   const [cancelando, setCancelando] = useState<string | null>(null);
+  const [confirmarCancelar, setConfirmarCancelar] = useState<Pagamento | null>(null);
   const [copied, setCopied] = useState(false);
 
   const [historico, setHistorico] = useState<HistoricoLogin[]>([]);
@@ -181,7 +182,7 @@ export default function PainelPage() {
   };
 
   const handleCancelar = async (p: Pagamento) => {
-    if (!confirm(`Cancelar o pagamento ${p.idPagamento}?`)) return;
+    setConfirmarCancelar(null);
     setCancelando(p.idPagamento);
     try {
       await fetch(`/api/pagamento/${p.idPagamento}/cancelar`, { method: "POST" });
@@ -658,6 +659,55 @@ export default function PainelPage() {
         </div>
       )}
 
+      {/* ==================== MODAL CONFIRMAR CANCELAMENTO ==================== */}
+      {confirmarCancelar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 w-full max-w-sm relative">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 mb-4">
+                <XCircle className="w-7 h-7 text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Cancelar Pagamento</h3>
+              <p className="text-sm text-gray-400">
+                Tem certeza que deseja cancelar este pagamento? Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="bg-gray-800/60 border border-gray-700 rounded-xl px-4 py-3 mb-6 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Método</span>
+                <span className="text-white font-medium">{confirmarCancelar.metodo}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Valor</span>
+                <span className="text-white font-medium">{confirmarCancelar.valor}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">ID</span>
+                <span className="text-gray-400 font-mono text-xs">{confirmarCancelar.idPagamento}</span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmarCancelar(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-700 hover:border-gray-600 text-gray-300 hover:text-white text-sm font-medium transition-colors"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={() => handleCancelar(confirmarCancelar)}
+                disabled={cancelando === confirmarCancelar.idPagamento}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white text-sm font-semibold transition-colors"
+              >
+                {cancelando === confirmarCancelar.idPagamento
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <XCircle className="w-4 h-4" />}
+                Cancelar Pagamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ==================== MODAL DETALHES PAGAMENTO ==================== */}
       {detalhesModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -791,7 +841,7 @@ export default function PainelPage() {
                           </button>
                         )}
                         <button
-                          onClick={() => handleCancelar(p)}
+                          onClick={() => setConfirmarCancelar(p)}
                           disabled={cancelando === p.idPagamento}
                           className="flex items-center gap-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
