@@ -5,10 +5,26 @@ import { addPagamento, updatePagamentoStatus, updateUsuarioPlano } from "@/lib/s
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log("Webhook recebido:", JSON.stringify(body));
 
-    // Mercado Pago sends different notification types
-    if (body.type === "payment" || body.action === "payment.updated" || body.action === "payment.created") {
-      const paymentId = body.data?.id || body.id;
+    // Suporta todos os formatos de notificação do Mercado Pago:
+    // 1. Novo formato: { type: "payment", data: { id: "..." } }
+    // 2. Formato action: { action: "payment.updated", data: { id: "..." } }
+    // 3. Formato IPN antigo: { topic: "payment", resource: "/v1/payments/123" ou "123" }
+    const isPaymentNotification =
+      body.type === "payment" ||
+      body.action === "payment.updated" ||
+      body.action === "payment.created" ||
+      body.topic === "payment";
+
+    if (isPaymentNotification) {
+      // Extrair ID do pagamento de qualquer formato
+      let paymentId = body.data?.id || body.id;
+      if (!paymentId && body.resource) {
+        // IPN antigo: resource pode ser "/v1/payments/123456" ou só "123456"
+        const match = String(body.resource).match(/(\d+)$/);
+        paymentId = match ? match[1] : null;
+      }
 
       if (!paymentId) {
         console.log("Webhook recebido sem payment ID:", body);
@@ -69,6 +85,55 @@ export async function POST(req: NextRequest) {
     console.error("Webhook error:", error);
     // Always return 200 to Mercado Pago to avoid retries on our errors
     return NextResponse.json({ received: true });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  // Validação de URL pelo Mercado Pago + sync manual: /api/pagamento/webhook?id=123456&secret=SEU_SECRET
+  const { searchParams } = new URL(req.url);
+  const paymentId = searchParams.get("id");
+  const secret = searchParams.get("secret");
+
+  if (!paymentId) {
+    return NextResponse.json({ ok: true });
+  }
+
+  if (secret !== process.env.WEBHOOK_SECRET) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  try {
+    const payment = await paymentClient.get({ id: paymentId });
+    if (payment.status !== "approved") {
+      return NextResponse.json({ status: payment.status, message: "Pagamento não aprovado" });
+    }
+
+    const metadata = payment.metadata || {};
+    const userId = String(metadata.user_id || "");
+    const planoNome = String(metadata.plano_nome || "");
+    const planoDias = Number(metadata.plano_dias || 30);
+
+    if (!userId) {
+      return NextResponse.json({ error: "user_id não encontrado no metadata" }, { status: 400 });
+    }
+
+    const dataPagamento = new Date(payment.date_approved || payment.date_created || Date.now())
+      .toLocaleDateString("pt-BR");
+    const valor = `R$ ${(payment.transaction_amount || 0).toFixed(2).replace(".", ",")}`;
+    const metodo = mapPaymentMethod(payment.payment_type_id || "");
+    const paymentIdStr = String(payment.id);
+    const externalRef = String(payment.external_reference || "");
+
+    const updated = await updatePagamentoStatus(paymentIdStr, "Aprovado");
+    if (!updated) {
+      await addPagamento({ idUsuario: userId, idPagamento: paymentIdStr, dataPagamento, valor, metodo, status: "Aprovado", externalReference: externalRef });
+    }
+    await updateUsuarioPlano(userId, planoNome || "Premium", planoDias);
+
+    return NextResponse.json({ ok: true, paymentId: paymentIdStr, userId, planoNome, planoDias, updated });
+  } catch (error) {
+    console.error("Sync manual error:", error);
+    return NextResponse.json({ error: "Erro ao sincronizar pagamento" }, { status: 500 });
   }
 }
 
