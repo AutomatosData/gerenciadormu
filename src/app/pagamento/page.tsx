@@ -291,7 +291,7 @@ function PagamentoContent() {
       )}
 
       {/* Planos */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 ${!selectedUsuarioId ? "opacity-50 pointer-events-none" : ""}`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10 overflow-visible ${!selectedUsuarioId ? "opacity-50 pointer-events-none" : ""}`}>
         {PLANOS.map((plano) => {
           const economia = getEconomia(plano);
           const isSelected = selectedPlano?.id === plano.id;
@@ -300,7 +300,7 @@ function PagamentoContent() {
             <div
               key={plano.id}
               onClick={() => { if (selectedUsuarioId) { setSelectedPlano(plano); setError(""); } }}
-              className={`relative bg-gray-900 border rounded-2xl p-6 flex flex-col cursor-pointer transition-all duration-200 ${
+              className={`relative bg-gray-900 border rounded-2xl p-6 flex flex-col cursor-pointer transition-all duration-200 overflow-visible ${
                 isSelected ? "border-purple-500 ring-2 ring-purple-500/40" : PLANO_BORDER[plano.id]
               } ${plano.id === "trimestral" && !isSelected ? "ring-1 ring-purple-500/20" : ""}`}
             >
@@ -310,7 +310,7 @@ function PagamentoContent() {
                 </div>
               )}
               {!isSelected && plano.id === "trimestral" && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap z-10">
                   POPULAR
                 </div>
               )}

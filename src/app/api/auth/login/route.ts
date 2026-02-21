@@ -3,7 +3,8 @@ import { getUsuarioPai, getUsuariosByPai } from "@/lib/sheets";
 
 export async function POST(req: NextRequest) {
   try {
-    const { usuarioPai } = await req.json();
+    const body = await req.json();
+    const usuarioPai = (body.usuarioPai || "").toLowerCase().trim();
 
     if (!usuarioPai) {
       return NextResponse.json({ error: "Usuário Pai é obrigatório" }, { status: 400 });
