@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addUsuario, getUsuarioByUsuario, getUsuarioPai } from "@/lib/sheets";
+import { addUsuario, getUsuarioByUsuario, getUsuarioPai, getUsuarios } from "@/lib/sheets";
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,11 +41,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Este nome de usuário já está em uso" }, { status: 409 });
     }
 
+    // Buscar dados do pai para copiar nome, email e whatsapp
+    const todos = await getUsuarios();
+    const pai = todos.find(
+      (u) => u.usuarioPai === "" &&
+        (u.nome.toLowerCase() === data.usuarioPai.toLowerCase() ||
+         u.usuario.toLowerCase() === data.usuarioPai.toLowerCase())
+    );
+
     const user = await addUsuario({
-      nome: data.nome || "",
+      nome: data.nome || pai?.nome || "",
       usuario: data.usuario,
-      email: data.email || "",
-      whatsapp: data.whatsapp || "",
+      email: data.email || pai?.email || "",
+      whatsapp: data.whatsapp || pai?.whatsapp || "",
       usuarioPai: data.usuarioPai,
     });
 
