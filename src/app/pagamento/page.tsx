@@ -29,6 +29,7 @@ interface Plano {
 }
 
 const PLANOS: Plano[] = [
+  { id: "semanal", nome: "Semanal", descricao: "Acesso completo por 7 dias", preco: 7.9, dias: 7 },
   { id: "mensal", nome: "Mensal", descricao: "Acesso completo por 30 dias", preco: 29.9, dias: 30 },
   { id: "trimestral", nome: "Trimestral", descricao: "Acesso completo por 90 dias", preco: 74.9, dias: 90 },
   { id: "semestral", nome: "Semestral", descricao: "Acesso completo por 180 dias", preco: 134.9, dias: 180 },
@@ -36,6 +37,7 @@ const PLANOS: Plano[] = [
 ];
 
 const PLANO_ICONS: Record<string, React.ReactNode> = {
+  semanal: <Check className="w-8 h-8" />,
   mensal: <Zap className="w-8 h-8" />,
   trimestral: <Star className="w-8 h-8" />,
   semestral: <Crown className="w-8 h-8" />,
@@ -43,6 +45,7 @@ const PLANO_ICONS: Record<string, React.ReactNode> = {
 };
 
 const PLANO_COLORS: Record<string, string> = {
+  semanal: "from-green-500 to-green-600",
   mensal: "from-blue-500 to-blue-600",
   trimestral: "from-purple-500 to-purple-600",
   semestral: "from-amber-500 to-amber-600",
@@ -50,6 +53,7 @@ const PLANO_COLORS: Record<string, string> = {
 };
 
 const PLANO_BORDER: Record<string, string> = {
+  semanal: "border-green-500/30 hover:border-green-500",
   mensal: "border-blue-500/30 hover:border-blue-500",
   trimestral: "border-purple-500/30 hover:border-purple-500",
   semestral: "border-amber-500/30 hover:border-amber-500",
@@ -57,9 +61,9 @@ const PLANO_BORDER: Record<string, string> = {
 };
 
 function getEconomia(plano: Plano): string | null {
-  const mensal = PLANOS.find((p) => p.id === "mensal");
-  if (!mensal || plano.id === "mensal") return null;
-  const custoSemDesconto = mensal.preco * (plano.dias / 30);
+  const semanal = PLANOS.find((p) => p.id === "semanal");
+  if (!semanal || plano.id === "semanal") return null;
+  const custoSemDesconto = (semanal.preco / 7) * plano.dias;
   const economia = ((1 - plano.preco / custoSemDesconto) * 100).toFixed(0);
   return `${economia}% de economia`;
 }
