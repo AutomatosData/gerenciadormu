@@ -177,6 +177,35 @@ export async function updateUsuario(id: string, data: { nome?: string; usuario?:
     },
   });
 
+  // Se é conta pai (usuarioPai vazio) e alterou email ou whatsapp, propagar para todos os filhos
+  const isPai = updated.usuarioPai === "";
+  const propagarEmail = data.email !== undefined;
+  const propagarWhatsapp = data.whatsapp !== undefined;
+
+  if (isPai && (propagarEmail || propagarWhatsapp)) {
+    const nomePai = updated.nome || updated.usuario;
+    const filhos = rows
+      .map((r, i) => ({ row: r, sheetRow: i + 2 }))
+      .filter(({ row: r }) =>
+        r[7] && r[7].toLowerCase() === nomePai.toLowerCase() && r[0] !== id
+      );
+
+    for (const { row: r, sheetRow: sr } of filhos) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `USUÁRIOS!D${sr}:D${sr}`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: [[propagarEmail ? updated.email : (r[3] ?? "")]] },
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `USUÁRIOS!G${sr}:G${sr}`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: [[propagarWhatsapp ? updated.whatsapp : (r[6] ?? "")]] },
+      });
+    }
+  }
+
   return updated;
 }
 

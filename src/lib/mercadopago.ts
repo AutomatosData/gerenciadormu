@@ -17,6 +17,13 @@ export interface PlanoConfig {
 
 export const PLANOS: PlanoConfig[] = [
   {
+    id: "semanal",
+    nome: "Semanal",
+    descricao: "Acesso completo por 7 dias",
+    preco: 7.90,
+    dias: 7,
+  },
+  {
     id: "mensal",
     nome: "Mensal",
     descricao: "Acesso completo por 30 dias",
