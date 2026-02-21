@@ -101,6 +101,8 @@ export default function PainelPage() {
   const [detalhesModal, setDetalhesModal] = useState<{ pagamento: Pagamento; detalhes: DetalhesPagamento | null } | null>(null);
   const [loadingDetalhes, setLoadingDetalhes] = useState(false);
   const [cancelando, setCancelando] = useState<string | null>(null);
+  const [sincronizando, setSincronizando] = useState<string | null>(null);
+  const [syncMsg, setSyncMsg] = useState<{ id: string; ok: boolean; text: string } | null>(null);
   const [confirmarCancelar, setConfirmarCancelar] = useState<Pagamento | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -179,6 +181,25 @@ export default function PainelPage() {
       setDetalhesModal(null);
     }
     setLoadingDetalhes(false);
+  };
+
+  const handleSincronizar = async (p: Pagamento) => {
+    setSincronizando(p.idPagamento);
+    setSyncMsg(null);
+    try {
+      const res = await fetch(`/api/pagamento/${p.idPagamento}/sincronizar`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.status === "approved") {
+        setPagamentos((prev) => prev.map((x) => x.idPagamento === p.idPagamento ? { ...x, status: "Aprovado" } : x));
+        setSyncMsg({ id: p.idPagamento, ok: true, text: "Pagamento aprovado! Plano atualizado." });
+      } else {
+        setSyncMsg({ id: p.idPagamento, ok: false, text: data.message || "Pagamento ainda não aprovado." });
+      }
+    } catch {
+      setSyncMsg({ id: p.idPagamento, ok: false, text: "Erro de conexão." });
+    }
+    setSincronizando(null);
+    setTimeout(() => setSyncMsg(null), 5000);
   };
 
   const handleCancelar = async (p: Pagamento) => {
@@ -829,27 +850,45 @@ export default function PainelPage() {
                           <p className="text-xs text-gray-500">{p.metodo} · {p.valor} · {p.dataPagamento}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-md font-medium">Pendente</span>
-                        {(p.metodo === "PIX" || p.metodo === "Boleto") && (
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-md font-medium">Pendente</span>
+                          {(p.metodo === "PIX" || p.metodo === "Boleto") && (
+                            <button
+                              onClick={() => handleVerDetalhes(p)}
+                              className="flex items-center gap-1.5 text-xs bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                            >
+                              {p.metodo === "PIX" ? <QrCode className="w-3.5 h-3.5" /> : <CreditCard className="w-3.5 h-3.5" />}
+                              {p.metodo === "PIX" ? "Ver QR Code" : "Ver Boleto"}
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleVerDetalhes(p)}
-                            className="flex items-center gap-1.5 text-xs bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                            onClick={() => handleSincronizar(p)}
+                            disabled={sincronizando === p.idPagamento}
+                            className="flex items-center gap-1.5 text-xs bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Verificar se o pagamento foi aprovado"
                           >
-                            {p.metodo === "PIX" ? <QrCode className="w-3.5 h-3.5" /> : <CreditCard className="w-3.5 h-3.5" />}
-                            {p.metodo === "PIX" ? "Ver QR Code" : "Ver Boleto"}
+                            {sincronizando === p.idPagamento
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <CheckCircle className="w-3.5 h-3.5" />}
+                            Atualizar Status
                           </button>
+                          <button
+                            onClick={() => setConfirmarCancelar(p)}
+                            disabled={cancelando === p.idPagamento}
+                            className="flex items-center gap-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {cancelando === p.idPagamento
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <XCircle className="w-3.5 h-3.5" />}
+                            Cancelar
+                          </button>
+                        </div>
+                        {syncMsg?.id === p.idPagamento && (
+                          <p className={`text-xs font-medium ${syncMsg.ok ? "text-green-400" : "text-amber-400"}`}>
+                            {syncMsg.text}
+                          </p>
                         )}
-                        <button
-                          onClick={() => setConfirmarCancelar(p)}
-                          disabled={cancelando === p.idPagamento}
-                          className="flex items-center gap-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {cancelando === p.idPagamento
-                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            : <XCircle className="w-3.5 h-3.5" />}
-                          Cancelar
-                        </button>
                       </div>
                     </div>
                   ))}
