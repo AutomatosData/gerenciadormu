@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  if (secret !== process.env.WEBHOOK_SECRET) {
+  if (secret !== process.env.MP_WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
