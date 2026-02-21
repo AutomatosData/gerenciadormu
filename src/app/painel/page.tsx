@@ -852,7 +852,6 @@ export default function PainelPage() {
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-md font-medium">Pendente</span>
                           {(p.metodo === "PIX" || p.metodo === "Boleto") && (
                             <button
                               onClick={() => handleVerDetalhes(p)}
